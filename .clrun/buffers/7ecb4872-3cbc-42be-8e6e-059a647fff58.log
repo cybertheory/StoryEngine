@@ -1,0 +1,25 @@
+[1m[7m%[27m[1m[0m                                                                                                                        [0m[27m[24m[Jrishabhsingh@Rishabhs-MacBook-Pro storyobject % [K[?2004hnnpx shadcn@latest init -d[?2004l
+npm warn exec The following package was not found and will be installed: shadcn@4.1.2
+- Preflight checks.
+✔ Preflight checks.
+- Verifying framework.
+✔ Verifying framework. Found Next.js.
+- Validating Tailwind CSS. Found v4.
+✔ Validating Tailwind CSS. Found v4.
+- Validating import alias.
+✔ Validating import alias.
+- Writing components.json.
+✔ Writing components.json.
+- Checking registry.
+✔ Checking registry.
+- Installing dependencies.
+- Installing dependencies.
+✔ Installing dependencies.
+- Updating fonts.
+✔ Updating fonts.
+- Updating files.
+✔ Created 2 files:
+  - src/components/ui/button.tsx
+  - src/lib/utils.ts
+- Updating src/app/globals.css
+✔ Updating src/app/globals.css
