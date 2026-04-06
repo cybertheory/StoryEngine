@@ -9,7 +9,6 @@ import { Footer } from "@/components/layout/footer";
 import { UniverseCard } from "@/components/catalog/universe-card";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search } from "lucide-react";
 import Link from "next/link";
 import { useOptionalSessionToken } from "@/contexts/auth-context";
 import { objectPreviewPath } from "@/lib/routes";
@@ -41,15 +40,16 @@ function SearchContent() {
   const searchParams = useSearchParams();
   const sessionToken = useOptionalSessionToken();
   const q = searchParams.get("q") ?? "";
+  const hasQuery = Boolean(q.trim());
 
   const universes = useQuery(
     api.universes.search,
-    q.trim() ? { query: q.trim() } : "skip"
+    hasQuery ? { query: q.trim() } : "skip"
   );
 
   const objects = useQuery(
     api.objects.search,
-    q.trim()
+    hasQuery
       ? {
           query: q.trim(),
           ...(sessionToken ? { sessionToken } : {}),
@@ -57,28 +57,41 @@ function SearchContent() {
       : "skip"
   );
 
-  const isLoading = q.trim() && (universes === undefined || objects === undefined);
+  const catalogUniverses = useQuery(
+    api.universes.list,
+    !hasQuery ? { visibility: "public" as const, limit: 100 } : "skip"
+  );
+
+  const catalogObjects = useQuery(
+    api.objects.listCatalog,
+    !hasQuery ? { limit: 72 } : "skip"
+  );
+
+  const isLoading = hasQuery
+    ? universes === undefined || objects === undefined
+    : catalogUniverses === undefined || catalogObjects === undefined;
+
+  const displayUniverses = hasQuery ? universes : catalogUniverses;
+  const displayObjects = hasQuery ? objects : catalogObjects;
 
   return (
     <>
       <Masthead />
       <main className="flex-1 max-w-7xl mx-auto px-4 py-8">
         <div className="mb-8">
-          <p className="section-label mb-2">Search Results</p>
+          <p className="section-label mb-2">
+            {hasQuery ? "Search results" : "Catalog"}
+          </p>
           <h1 className="font-display text-3xl font-black">
-            {q ? `"${q}"` : "Search"}
+            {q ? `"${q}"` : "Browse catalog"}
           </h1>
-        </div>
-
-        {!q.trim() && (
-          <div className="py-20 text-center">
-            <Search className="mx-auto h-12 w-12 text-muted-foreground/30 mb-4" />
-            <p className="text-muted-foreground font-body">
-              Enter a search term to find universes, characters, places, and
-              more.
+          {!hasQuery && (
+            <p className="mt-2 text-sm text-muted-foreground font-body max-w-xl">
+              Public universes and objects. Use the bar above or ⌘K to search
+              by name.
             </p>
-          </div>
-        )}
+          )}
+        </div>
 
         {isLoading && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -88,13 +101,13 @@ function SearchContent() {
           </div>
         )}
 
-        {q.trim() && universes && universes.length > 0 && (
+        {!isLoading && displayUniverses && displayUniverses.length > 0 && (
           <section className="mb-8">
             <h2 className="section-label mb-4">
-              Universes ({universes.length})
+              Universes ({displayUniverses.length})
             </h2>
             <div className="flex flex-wrap gap-4">
-              {universes.map((u) => (
+              {displayUniverses.map((u) => (
                 <UniverseCard
                   key={u._id}
                   name={u.name}
@@ -111,38 +124,44 @@ function SearchContent() {
           </section>
         )}
 
-        {q.trim() && universes && universes.length > 0 && objects && objects.length > 0 && (
+        {!isLoading &&
+          displayUniverses &&
+          displayUniverses.length > 0 &&
+          displayObjects &&
+          displayObjects.length > 0 && (
           <Separator className="bg-foreground/10 my-6" />
         )}
 
-        {q.trim() && objects && objects.length > 0 && (
+        {!isLoading && displayObjects && displayObjects.length > 0 && (
           <section>
-            <h2 className="section-label mb-4">Objects ({objects.length})</h2>
+            <h2 className="section-label mb-4">
+              Objects ({displayObjects.length})
+            </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {objects.map((obj) => {
+              {displayObjects.map((obj) => {
                 const row = (
-                  <div className="flex items-start gap-3">
+                  <div className="flex flex-col sm:flex-row sm:items-stretch overflow-hidden">
                     {obj.imageUrl ? (
                       <img
                         src={obj.imageUrl}
                         alt={obj.name}
-                        className="w-12 h-12 object-cover border border-foreground/10"
+                        className="w-full sm:w-36 shrink-0 aspect-[16/10] sm:aspect-auto sm:self-stretch sm:min-h-[120px] object-cover border-b sm:border-b-0 sm:border-r border-foreground/10"
                       />
                     ) : (
-                      <div className="w-12 h-12 bg-muted flex items-center justify-center border border-foreground/10">
-                        <span className="font-display text-sm font-bold text-muted-foreground/40">
+                      <div className="w-full sm:w-36 shrink-0 aspect-[16/10] sm:aspect-auto sm:self-stretch sm:min-h-[120px] bg-muted flex items-center justify-center border-b sm:border-b-0 sm:border-r border-foreground/10">
+                        <span className="font-display text-2xl font-bold text-muted-foreground/40">
                           {obj.name[0]}
                         </span>
                       </div>
                     )}
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0 p-4 flex flex-col justify-center">
                       <p className="font-display text-sm font-bold truncate">
                         {obj.name}
                       </p>
                       <p className="text-[10px] font-mono-face tracking-wider uppercase text-muted-foreground">
                         {obj.kind}
                       </p>
-                      <p className="text-xs text-muted-foreground line-clamp-2 mt-1 font-body">
+                      <p className="text-xs text-muted-foreground line-clamp-3 mt-1 font-body">
                         {obj.description}
                       </p>
                     </div>
@@ -155,7 +174,7 @@ function SearchContent() {
                     ? (obj as { universeSlug: string }).universeSlug
                     : null;
                 const shell =
-                  "border border-foreground/20 p-4 hover:border-foreground transition-colors";
+                  "border border-foreground/20 overflow-hidden hover:border-foreground transition-colors";
                 if (slug) {
                   return (
                     <Link
@@ -177,7 +196,7 @@ function SearchContent() {
           </section>
         )}
 
-        {q.trim() &&
+        {hasQuery &&
           universes &&
           objects &&
           universes.length === 0 &&
@@ -189,6 +208,17 @@ function SearchContent() {
               <p className="text-muted-foreground font-body">
                 Try searching with different terms.
               </p>
+            </div>
+          )}
+
+        {!hasQuery &&
+          !isLoading &&
+          catalogUniverses &&
+          catalogObjects &&
+          catalogUniverses.length === 0 &&
+          catalogObjects.length === 0 && (
+            <div className="py-20 text-center text-muted-foreground font-body">
+              Nothing in the public catalog yet.
             </div>
           )}
       </main>

@@ -214,6 +214,48 @@ export const search = query({
   },
 });
 
+/** Recent objects across public universes for browse / empty search (excludes scene anchor). */
+const CATALOG_UNIVERSE_CAP = 24;
+const CATALOG_OBJECTS_PER_UNIVERSE = 10;
+const CATALOG_MAX_DEFAULT = 72;
+
+export const listCatalog = query({
+  args: {
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const maxOut = Math.min(
+      Math.max(1, args.limit ?? CATALOG_MAX_DEFAULT),
+      120
+    );
+    const universes = await ctx.db
+      .query("universes")
+      .withIndex("by_visibility", (q) => q.eq("visibility", "public"))
+      .order("desc")
+      .take(CATALOG_UNIVERSE_CAP);
+
+    const accumulated: Array<Doc<"objects"> & { universeSlug: string }> = [];
+    for (const u of universes) {
+      const batch = await ctx.db
+        .query("objects")
+        .withIndex("by_universe", (q) => q.eq("universeId", u._id))
+        .order("desc")
+        .take(CATALOG_OBJECTS_PER_UNIVERSE);
+      for (const obj of batch) {
+        if (obj.tags.includes(STORYOBJECT_SCENE_ANCHOR_TAG)) continue;
+        accumulated.push(
+          Object.assign({}, obj, { universeSlug: u.slug }) as Doc<"objects"> & {
+            universeSlug: string;
+          }
+        );
+      }
+    }
+
+    accumulated.sort((a, b) => b.updatedAt - a.updatedAt);
+    return accumulated.slice(0, maxOut);
+  },
+});
+
 export const create = mutation({
   args: {
     universeId: v.id("universes"),

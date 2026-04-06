@@ -45,19 +45,33 @@ export function UniversalSpotlight({
   const [query, setQuery] = useState("");
   const debounced = useDebouncedValue(query, 200);
 
+  const searching = debounced.trim().length >= 1;
+
   const universes = useQuery(
     api.universes.search,
-    debounced.trim().length >= 1 ? { query: debounced.trim() } : "skip"
+    open && searching ? { query: debounced.trim() } : "skip"
   );
 
   const objects = useQuery(
     api.objects.search,
-    debounced.trim().length >= 1
+    open && searching
       ? {
           query: debounced.trim(),
           ...(sessionToken ? { sessionToken } : {}),
         }
       : "skip"
+  );
+
+  const catalogUniverses = useQuery(
+    api.universes.list,
+    open && !searching
+      ? { visibility: "public" as const, limit: 22 }
+      : "skip"
+  );
+
+  const catalogObjects = useQuery(
+    api.objects.listCatalog,
+    open && !searching ? { limit: 28 } : "skip"
   );
 
   useEffect(() => {
@@ -98,12 +112,14 @@ export function UniversalSpotlight({
     return () => window.removeEventListener("keydown", onKey);
   }, [onOpenChange]);
 
-  const universeList = universes ?? [];
-  const objectList = objects ?? [];
-  const searching = debounced.trim().length >= 1;
-  const loading =
-    searching &&
-    (universes === undefined || objects === undefined);
+  const universeList = searching
+    ? (universes ?? [])
+    : (catalogUniverses ?? []);
+  const objectList = searching ? (objects ?? []) : (catalogObjects ?? []);
+  const loading = searching
+    ? open && (universes === undefined || objects === undefined)
+    : open &&
+      (catalogUniverses === undefined || catalogObjects === undefined);
 
   function go(href: string) {
     onOpenChange(false);
@@ -171,29 +187,56 @@ export function UniversalSpotlight({
               </CommandGroup>
             )}
 
-            {searching && loading && (
+            {loading && (
               <div className="px-4 py-8 text-center text-sm text-muted-foreground font-mono-face">
-                Searching…
+                {searching ? "Searching…" : "Loading catalog…"}
               </div>
             )}
 
-            {searching && !loading && universeList.length === 0 && objectList.length === 0 && (
+            {searching &&
+              !loading &&
+              universeList.length === 0 &&
+              objectList.length === 0 && (
               <CommandEmpty className="py-10 font-body text-muted-foreground">
                 No matches for &ldquo;{debounced.trim()}&rdquo;
               </CommandEmpty>
             )}
 
-            {searching && !loading && universeList.length > 0 && (
+            {!searching &&
+              !loading &&
+              universeList.length === 0 &&
+              objectList.length === 0 && (
+              <CommandEmpty className="py-8 font-body text-muted-foreground">
+                No public universes or objects yet.
+              </CommandEmpty>
+            )}
+
+            {!loading && universeList.length > 0 && (
               <>
-                <CommandGroup heading="Universes">
+                {!searching && (
+                  <CommandSeparator className="bg-foreground/10" />
+                )}
+                <CommandGroup
+                  heading={searching ? "Universes" : "Universes in catalog"}
+                >
                   {universeList.map((u) => (
                     <CommandItem
                       key={u._id}
                       value={`universe-${u._id}`}
                       onSelect={() => go(`/universe/${u.slug}`)}
-                      className="rounded-none px-3 py-2.5"
+                      className="rounded-none px-3 py-2.5 gap-3"
                     >
-                      <Globe className="h-4 w-4 text-muted-foreground" />
+                      {u.coverUrl ? (
+                        <img
+                          src={u.coverUrl}
+                          alt=""
+                          className="h-11 w-11 shrink-0 object-cover border border-foreground/15"
+                        />
+                      ) : (
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center border border-foreground/15 bg-muted">
+                          <Globe className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                      )}
                       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                         <span className="truncate font-display font-semibold">
                           {u.name}
@@ -209,10 +252,14 @@ export function UniversalSpotlight({
               </>
             )}
 
-            {searching && !loading && objectList.length > 0 && (
+            {!loading && objectList.length > 0 && (
               <>
-                {universeList.length > 0 && <CommandSeparator className="bg-foreground/10" />}
-                <CommandGroup heading="Objects">
+                {universeList.length > 0 && (
+                  <CommandSeparator className="bg-foreground/10" />
+                )}
+                <CommandGroup
+                  heading={searching ? "Objects" : "Objects in catalog"}
+                >
                   {objectList.map((o) => (
                     <CommandItem
                       key={o._id}
@@ -224,9 +271,19 @@ export function UniversalSpotlight({
                             : `/search?q=${encodeURIComponent(o.name)}`
                         )
                       }
-                      className="rounded-none px-3 py-2.5"
+                      className="rounded-none px-3 py-2.5 gap-3"
                     >
-                      <Box className="h-4 w-4 text-muted-foreground" />
+                      {o.imageUrl ? (
+                        <img
+                          src={o.imageUrl}
+                          alt=""
+                          className="h-11 w-11 shrink-0 object-cover border border-foreground/15"
+                        />
+                      ) : (
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center border border-foreground/15 bg-muted">
+                          <Box className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                      )}
                       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                         <span className="flex items-center gap-2 truncate">
                           <span className="truncate font-display font-semibold">
