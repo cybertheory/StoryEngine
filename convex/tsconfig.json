@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "lib": ["ES2021", "dom"],
+    "allowJs": true,
+    "strict": true,
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "noEmit": true,
+    "paths": {}
+  },
+  "include": ["./**/*.ts", "./**/*.tsx", "./_generated/**/*.ts"],
+  "exclude": ["node_modules"]
+}

@@ -1,3 +1,0 @@
-{"timestamp":"2026-04-05T13:24:51.176Z","event":"skills.installed","data":{"files":["clrun-skill.md","claude-code-skill.md","openclaw-skill.md","clrun/SKILL.md","clrun/references/tui-patterns.md"]}}
-{"timestamp":"2026-04-05T13:24:51.178Z","event":"session.created","terminal_id":"7ecb4872-3cbc-42be-8e6e-059a647fff58","data":{"command":"npx shadcn@latest init -d","cwd":"/Users/rishabhsingh/Documents/storyobject","worker_pid":78411}}
-{"timestamp":"2026-04-05T13:24:51.226Z","event":"session.created","terminal_id":"7ecb4872-3cbc-42be-8e6e-059a647fff58","data":{"command":"npx shadcn@latest init -d","cwd":"/Users/rishabhsingh/Documents/storyobject","pid":78412}}

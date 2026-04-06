@@ -36,6 +36,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# clrun (local agent terminal sessions)
+.clrun/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
